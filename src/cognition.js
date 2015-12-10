@@ -122,7 +122,17 @@
         });
     };
 
+    var NETWORK_PLUGIN = "network-http"
+    cognition.plugins = {}
+
+    cognition.use  = function (name, plugin) {
+        cognition.plugins[name] = plugin
+    }
+
     cognition.init = function (sel, url, debugUrl){
+
+        if (!cognition.plugins.hasOwnProperty(NETWORK_PLUGIN))
+            throw new Error ("Cogntion needs a network-http plugin.")
 
         var root = cognition.root = new MapItem();
         root.aliasZone = ALIAS_ROOT;
@@ -2588,6 +2598,24 @@
         this._xhr = null;
         this._timeoutId = null;
 
+        this._conditions = {
+            UNSENT: 'unsent',
+            OPENED: 'opened',
+            HEADERS_RECEIVED: 'headers_received',
+            LOADING: 'loading',
+            BUSY: 'busy',
+            DONE: 'done',
+            ERROR: 'error'
+        }
+
+        this._readyStateMap = {
+            0: "UNSENT",
+            1: "OPENED",
+            2: "HEADERS_RECEIVED",
+            3: "LOADING",
+            4: "DONE"
+        }
+
     };
 
     WebService.prototype.init = function(settings, cog, location){
@@ -2672,40 +2700,82 @@
 
     WebService.prototype._runRequest = function(){
 
+        var isJSON = function isJSON (settings) {
+            var jsonRe = /json$/
+              , ctOpt  = settings.contentType
+              , ctHead = settings.headers && settings.headers["Content-Type"]
+
+            if (ctOpt) return jsonRe.test(ctOpt)
+            else if (ctHead) return jsonRe.test(ctHead)
+            else return false
+        }
+
         var self = this;
         self._primed = false;
 
         self.abort(); // this should not be needed, possible sanity check
 
-        self._location.write(self._settings, 'request');
-        self._location.write('busy', 'condition');
+        self._location.write(self._conditions.BUSY, 'condition');
 
         var settings = {};
 
-        settings.data = self._settings.params;
-        settings.url = self._settings.resolvedUrl;
-        settings.type = self._settings.verb || 'GET';
-        settings.dataType = self._settings.format;
+        /* gross jquery flavored settings */
+        //settings.type         = self._settings.verb || 'GET';
+        //settings.dataType     = self._settings.format;
 
-        self._xhr = $.ajax(settings)
-            .done(function(response, status, xhr ){
+        settings.url            = self._settings.resolvedUrl;
+        // NOTE prioritize new api, but serve legacy as fallback for method, data, type
+        settings.method         = self._settings.method || self._settings.verb || "GET";
+        settings.data           = self._settings.data || self._settings.params; // can be an object or query string;
+        settings.type           = self._settings.type || self._settings.format; // can be html, xml, json, jsonp - format is old way, type is new
 
-                self._location.write(response);
-                self._location.write(response, 'done');
-                self._location.write(response, 'always');
-                self._location.write(status, 'status');
-                self._location.write('done', 'condition');
+        settings.headers        = self._settings.headers; // simple hash
+        settings.contentType    = self._settings.contentType;
+        settings.crossOrigin    = self._settings.crossOrigin;
+        /* this is a security concern, so how about no */
+        //settings.jsonpCallback  = self._settings.jsonpCallback;
 
-            })
-            .fail(function(xhr, status, error){
 
-                self._location.write(error, 'error');
-                self._location.write(error, 'always');
-                self._location.write(status, 'status');
-                self._location.write('error', 'condition');
+        /**
+         * If sending JSON (contentType is set or headers["Content-Type"] is
+         * set to whatever/json) and data isn't serialized, do that
+         *
+         * If data isn't a string and this isn't a JSON body, reqwest will form
+         * encode data itself
+         */
+        if (typeof settings.data !== "string" && isJSON(settings)) {
+            settings.data = JSON.stringify(settings.data)
+        }
 
-            })
-        ;
+        var req
+
+        self._xhr = req = cognition.plugins["network-http"](settings).then(function (resp) {
+            if (resp.responseText === void 0) { // reqwuest forwards the XHR's responseText prop as undefined for jsonp for some reason
+                delete resp.responseText
+            }
+
+            self._location.write(resp)
+            self._location.write(resp, "done")
+            self._location.write(resp, "always")
+            self._location.write(req.request.status, "status")
+            self._location.write(self._conditions.DONE, 'condition')
+
+        }).catch(function (resp, msg, t) {
+            // t is an Error, only passed by reqwest for JSON parse errors
+            // log it for now
+            if (t) console.error(t)
+
+            self._location.write(resp, "error")
+            self._location.write(resp, "always")
+            self._location.write(req.request.status, "status") // jquery maps the status codes to strings for some reason; we no do
+            self._location.write(self._conditions.ERROR, 'condition')
+
+        }).always(function () {
+            self._location.write(undefined, "always")
+        })
+
+        self._xhr.readyState = req.request.readyState // forward the readyState prop so .isActive can see it
+
         return self;
     };
 
