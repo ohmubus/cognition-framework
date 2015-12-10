@@ -125,7 +125,7 @@
     var NETWORK_PLUGIN = "network-http"
     cognition.plugins = {}
 
-    cognition.use  = function (name, plugin) {
+    cognition.use = function (name, plugin) {
         cognition.plugins[name] = plugin
     }
 
