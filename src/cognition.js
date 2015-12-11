@@ -2597,6 +2597,7 @@
         this._primed = false;
         this._xhr = null;
         this._timeoutId = null;
+        this._plugin = cognition.plugins[NETWORK_PLUGIN]()
 
         this._conditions = {
             UNSENT: 'unsent',
@@ -2606,14 +2607,6 @@
             BUSY: 'busy',
             DONE: 'done',
             ERROR: 'error'
-        }
-
-        this._readyStateMap = {
-            0: "UNSENT",
-            1: "OPENED",
-            2: "HEADERS_RECEIVED",
-            3: "LOADING",
-            4: "DONE"
         }
 
     };
@@ -2657,7 +2650,7 @@
         }
 
         if(this.isActive()){
-            this._xhr.abort();
+            this._plugin.abort();
             this._location.write(this._settings, 'abort');
         }
 
@@ -2667,7 +2660,7 @@
 
     WebService.prototype.isActive = function(){
 
-        return this._xhr && this._xhr.readyState && this._xhr.readyState != 4;
+        this._plugin.isActive()
 
     };
 
@@ -2719,10 +2712,6 @@
 
         var settings = {};
 
-        /* gross jquery flavored settings */
-        //settings.type         = self._settings.verb || 'GET';
-        //settings.dataType     = self._settings.format;
-
         settings.url            = self._settings.resolvedUrl;
         // NOTE prioritize new api, but serve legacy as fallback for method, data, type
         settings.method         = self._settings.method || self._settings.verb || "GET";
@@ -2747,9 +2736,7 @@
             settings.data = JSON.stringify(settings.data)
         }
 
-        var req
-
-        self._xhr = req = cognition.plugins["network-http"](settings).then(function (resp) {
+        self._plugin.request(settings).then(function (resp) {
             if (resp.responseText === void 0) { // reqwuest forwards the XHR's responseText prop as undefined for jsonp for some reason
                 delete resp.responseText
             }
@@ -2757,7 +2744,7 @@
             self._location.write(resp)
             self._location.write(resp, "done")
             self._location.write(resp, "always")
-            self._location.write(req.request.status, "status")
+            self._location.write(self._plugin.getStatus(), "status")
             self._location.write(self._conditions.DONE, 'condition')
 
         }).catch(function (resp, msg, t) {
@@ -2767,14 +2754,12 @@
 
             self._location.write(resp, "error")
             self._location.write(resp, "always")
-            self._location.write(req.request.status, "status") // jquery maps the status codes to strings for some reason; we no do
+            self._location.write(self._plugin.getStatus(), "status")
             self._location.write(self._conditions.ERROR, 'condition')
 
         }).always(function () {
             self._location.write(undefined, "always")
         })
-
-        self._xhr.readyState = req.request.readyState // forward the readyState prop so .isActive can see it
 
         return self;
     };
