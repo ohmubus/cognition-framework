@@ -23,3 +23,20 @@ help, too if you ask nice.
 ## The Basics
 
 _We're working on actual docs, promise._ Two minutes, Turkish.
+
+## Network Plugin
+
+Middleware style, provide a function that returns an object that looks like
+this:
+
+    function networkMiddleware () {
+        {
+            request: function (xhrSettings) {},
+            isActive: function () {},
+            abort: function () {},
+            getStatus: function () }
+        }
+    }
+
+Pass the function to `$.cognition.use("network-http", networkMiddleware)`
+_before_  calling `$.cognition.init()`.
