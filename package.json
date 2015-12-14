@@ -26,12 +26,14 @@
   },
   "homepage": "https://github.com/DarkMarmot/cognition",
   "dependencies": {
-    "catbus": "^2.0.7",
-    "jquery": "^2.1.4"
+    "catbus": "^2.0.11",
+    "jquery": "^2.1.4",
+    "seele": "^1.2.0"
   },
   "devDependencies": {
     "gulp": "^3.9.0",
     "gulp-connect": "^2.2.0",
+    "gulp-debug": "^2.1.2",
     "gulp-load-plugins": "^1.1.0"
   }
 }
