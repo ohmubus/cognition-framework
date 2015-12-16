@@ -69,11 +69,10 @@ gulp.task("watchDev", () => {
 })
 
 const tasks = [
-    "copy",
-    "watch"
+    "copy"
 ]
 
-gulp.task("default", tasks)
+gulp.task("ship", tasks)
 
 const devTasks = [
     "copyDev",
@@ -81,4 +80,4 @@ const devTasks = [
     "serveDev"
 ]
 
-gulp.task("dev", devTasks)
+gulp.task("default", devTasks)
