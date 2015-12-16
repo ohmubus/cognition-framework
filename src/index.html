@@ -5,14 +5,51 @@
 
     <body>
 
+        <script src="jquery.js" type="text/javascript"></script>
         <script src="catbus.js" type="text/javascript"></script>
         <script src="seele.js" type="text/javascript"></script>
         <script src="cognition.js" type="text/javascript"></script>
 
         <script type="text/javascript">
-            var ajaxPlugin = function () {}
+            var ajaxPlugin = function (iface, sepuku) {
+                var _xhr = null
 
-            $.cognition.use(ajaxPlugin)
+                function handleDestroy () {
+                    iface.write(null, "abort")
+                    sepuku()
+                }
+
+                function _isActive () {
+                    return _xhr && _xhr.readyState && _xhr.readyState !== 4
+                }
+
+                function abort () {
+                    if (_isActive())
+                        _xhr.abort()
+                }
+
+                function request (settings) {
+                    iface.write("busy", "condition")
+
+                    _xhr = jQuery.ajax(settings)
+                        .done(function (resp) {
+                            iface.write(resp)
+                            iface.write(resp, "done")
+                            iface.write("done", "condition")
+
+                        }).fail(function (err) {
+                            iface.write(err, "error")
+                            iface.write("error", "condition")
+                        })
+
+                }
+
+                iface.on("abort").run(abort)
+                iface.on("do_request").run(request)
+                iface.on("destroy").run(handleDestroy)
+            }
+
+            $.cognition.register("ajax", ajaxPlugin)
             $.cognition.init($(), "app.html")
         </script>
     </body>

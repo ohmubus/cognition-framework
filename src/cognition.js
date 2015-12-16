@@ -122,17 +122,15 @@
         });
     };
 
-    var NETWORK_PLUGIN = "network-http"
-    cognition.plugins = {}
+    var NETWORK_PLUGIN = "ajax"
 
-    cognition.use = function (name, plugin) {
-        cognition.plugins[name] = plugin
-    }
+    /**
+     * Wire up Seele, our puppet er plugin manager
+     */
+    cognition.plugins = window.seele
+    cognition.register = cognition.plugins.register.bind(cognition.plugins)
 
     cognition.init = function (sel, url, debugUrl){
-
-        if (!cognition.plugins.hasOwnProperty(NETWORK_PLUGIN))
-            throw new Error ("Cogntion needs a network-http plugin.")
 
         var root = cognition.root = new MapItem();
         root.aliasZone = ALIAS_ROOT;
@@ -2597,7 +2595,6 @@
         this._primed = false;
         this._xhr = null;
         this._timeoutId = null;
-        this._plugin = cognition.plugins[NETWORK_PLUGIN]()
 
         this._conditions = {
             UNSENT: 'unsent',
@@ -2618,6 +2615,8 @@
         this._cog = cog;
         this.settings(settings);
         this._location.service(this);
+
+        cognition.plugins.use(NETWORK_PLUGIN, this._location)
 
         return this;
 
@@ -2650,7 +2649,6 @@
         }
 
         if(this.isActive()){
-            this._plugin.abort();
             this._location.write(this._settings, 'abort');
         }
 
@@ -2660,7 +2658,7 @@
 
     WebService.prototype.isActive = function(){
 
-        this._plugin.isActive()
+        this._location.write(this._settings, "isActive");
 
     };
 
@@ -2736,30 +2734,7 @@
             settings.data = JSON.stringify(settings.data)
         }
 
-        self._plugin.request(settings).then(function (resp) {
-            if (resp.responseText === void 0) { // reqwuest forwards the XHR's responseText prop as undefined for jsonp for some reason
-                delete resp.responseText
-            }
-
-            self._location.write(resp)
-            self._location.write(resp, "done")
-            self._location.write(resp, "always")
-            self._location.write(self._plugin.getStatus(), "status")
-            self._location.write(self._conditions.DONE, 'condition')
-
-        }).catch(function (resp, msg, t) {
-            // t is an Error, only passed by reqwest for JSON parse errors
-            // log it for now
-            if (t) console.error(t)
-
-            self._location.write(resp, "error")
-            self._location.write(resp, "always")
-            self._location.write(self._plugin.getStatus(), "status")
-            self._location.write(self._conditions.ERROR, 'condition')
-
-        }).always(function () {
-            self._location.write(undefined, "always")
-        })
+        this._location.write(settings, "do_request");
 
         return self;
     };

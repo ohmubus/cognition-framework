@@ -18,6 +18,7 @@ const paths = {
         dist: ""
     },
     devFiles: [
+        "src/cognition.js",
         "node_modules/jquery/dist/jquery.js",
         "node_modules/catbus/dist/catbus.js",
         "node_modules/seele/src/seele.js",
@@ -41,6 +42,7 @@ gulp.task("copyDev", () => {
 gulp.task("serve", () => {
     g.connect.server({
         root: paths.dev,
+        port: process.env.PORT || 3000,
         livereload: process.env.RELOAD === "true" ? true : false
     })
 })
@@ -48,12 +50,13 @@ gulp.task("serve", () => {
 gulp.task("serveDev", () => {
     g.connect.server({
         root: paths.dev,
+        port: process.env.PORT || 3000,
         livereload: process.env.RELOAD === "true" ? true : false
     })
 })
 
 gulp.task("reload", () => {
-    src(paths.dist).pipe(g.connect.reload())
+    src("dev/**/*").pipe(g.debug()).pipe(g.connect.reload())
 })
 
 gulp.task("watch", () => {
@@ -62,6 +65,7 @@ gulp.task("watch", () => {
 
 gulp.task("watchDev", () => {
     gulp.watch(paths.devFiles, ["copyDev"])
+    gulp.watch("dev/**/*", ["reload"])
 })
 
 const tasks = [
