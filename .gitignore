@@ -1,0 +1,6 @@
+.idea
+*.swp
+*.swq
+node_modules
+srcNet
+dev
