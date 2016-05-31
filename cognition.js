@@ -26,7 +26,6 @@
     var dom = cognition.plugins.monolith('rei'); // dom manipulation wrapper, jq-lite
     var parser = cognition.plugins.monolith('vash'); // turns blueprints into json
     var resolver = cognition.plugins.monolith('kakashi'); // resolves aliases and urls in contexts
-    var template = cognition.plugins.monolith('kovacs');
     var downloader = cognition.plugins.monolith('ohmu'); // downloads batches of files
     //var fetcher = cognition.plugins.monolith('???'); // ajax/fetch actions
 
