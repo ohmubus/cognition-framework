@@ -1445,7 +1445,7 @@
         this._location = location;
         this.settings = settings;
 
-        cognition.plugins.use("tachikoma", this._location);
+        cognition.plugins.use("tachikoma", this._location, this.settings);
     }
 
     WSocket.prototype.send = function send (msg) {
