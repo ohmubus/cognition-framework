@@ -978,7 +978,7 @@
             sensor.change();
 
         if (def.filter) {
-            var filterMethod = context[def.filter];
+            var filterMethod = this._resolveValueFromType(def.filter, PROP);
             sensor.filter(filterMethod);
         }
 
@@ -1262,8 +1262,18 @@
         }
 
         var context = this.scriptData;
-        if(type === PROP)
-            return context[value];
+
+        if(type === PROP) {
+            // only digs down one level
+            var names = value.split(".");
+
+            if (names.length === 2) {
+                return context[names[0]][names[1]];
+
+            } else {
+                return context[names[0]];
+            }
+        }
 
         if(type === RUN)
             return this._resolveRunValue(value, context);
