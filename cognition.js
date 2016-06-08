@@ -1,7 +1,7 @@
 ;(function($, window) {
 
     /**
-     * cognition.js (v2.2.1-adapter mem leak fix)
+     * cognition.js (v2.3 templates and gather fix)
      *
      * Copyright (c) 2015 Scott Southworth, Landon Barnickle, Nick Lorenson & Contributors
      *
@@ -303,8 +303,6 @@
             self._cogFirstBuildDeclarations(defs);
 
         self.scriptData.init();
-
-        self.doTemplateBindings();
 
         if(defs) {
 
@@ -959,6 +957,8 @@
             sensor = dataPlace.on(def.topic);
 
         }
+
+        sensor.zone(mi.cogZone);
 
         var context = mi.scriptData;
 
