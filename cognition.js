@@ -1,7 +1,7 @@
 ;(function($, window) {
 
     /**
-     * cognition.js (v2.3 templates and gather fix)
+     * cognition.js (v2.31 fixed dynamic pinion cog with source data bug)
      *
      * Copyright (c) 2015 Scott Southworth, Landon Barnickle, Nick Lorenson & Contributors
      *
@@ -249,6 +249,7 @@
 
         {name: 'properties', method: 'createProp'},
         {name: 'adapters', method: 'createAdapter'},
+        {name: 'relays', method: 'createRelay'},
         {name: 'dataSources', method: 'createData'},
         {name: 'commands', method: 'demandData'},
         {name: 'methods', method: 'createMethod'},
@@ -411,6 +412,8 @@
             mi.isPinion = true;
             mi.aliasContext0 = mi.aliasContext1 = mi.aliasContext2 = mi.aliasContext3 = self.aliasContext3;
             mi.targetNode = self.scriptData[mi.target];
+            if(mi.source)
+                mi._resolveSource();
             mi.cogZone.findData(mi.url).on('update').change().as(mi).host(mi.uid).run(mi._cogReplaceUrl).autorun();
 
         }
@@ -530,10 +533,15 @@
 
         } else {
 
+
             if(this.sourceVal === undefined){
                 this.throwError('data source: ' + this.source + ' could not be resolved with static type!');
                 return;
             }
+
+            //if(typeof this.sourceVal === 'function') -- not needed?
+            //    this.sourceVal = this.sourceVal.call(this.parent.scriptData);
+
             this._refreshListItems(this.sourceVal);
 
         }
@@ -582,6 +590,11 @@
 
 
         } else {
+
+            //if(typeof this.sourceVal === 'function') { - not needed?
+            //    this.sourceVal = this.isAlloy ? this.sourceVal.call(this.origin.scriptData) :
+            //        this.sourceVal.call(outerCog.scriptData);
+            //}
 
             if(this.itemType === DATA)
                 this.itemVal.write(this.sourceVal);
@@ -650,7 +663,7 @@
             }
 
             //if(this.order)
-                //this.parent.localSel.append(displayItem.localSel);
+            //this.parent.localSel.append(displayItem.localSel);
 
             if(this.order) {
                 displayItem.localSel.reparent();
@@ -1001,6 +1014,10 @@
             sensor.emit(this._resolveValueFromType(def.emit, def.emitType))
         }
 
+        if(def.tagPresent){
+            sensor.tag(this._resolveValueFromType(def.tag, def.tagType))
+        }
+
         if(def.retain && !def.forget)
             sensor.retain();
 
@@ -1321,6 +1338,41 @@
         }
 
     };
+
+    MapItem.prototype.createRelay = function(def){
+
+        var z = this.cogZone;
+
+        var localIn = def.in;
+        var localOut = def.out;
+
+        var localInData = localIn && z.demandData(localIn);
+        var localOutData = localOut && z.demandData(localOut);
+
+        var itemName = def.item || (this.parent.isChain ? this.parent.item : this.item); // todo look up why diff on chains - need alloy skip? need pinion check?
+        var options = z.findData(itemName).read(); // todo add error crap if this stuff fails
+
+        var externalIn = options[localIn];
+        var externalOut = options[localOut];
+
+        var externalInData = externalIn && z.findData(externalIn, 'parent', def.optional);
+        var externalOutData = externalOut && z.findData(externalOut, 'parent', def.optional);
+
+        if(externalInData && localInData){ // watch the in data -- or watch the cmd point if not found
+            externalInData.on('*').host(this.uid).pipe(localInData).autorun();
+        } else if (externalOutData && localInData) {
+            externalOutData.on('*').host(this.uid).pipe(localInData).autorun();
+        }
+
+        if(externalOutData && localOutData) { // control the out data -- or the in if not found
+            localOutData.on('*').host(this.uid).pipe(externalOutData);
+        } else if (externalInData && localOutData) {
+            localOutData.on('*').host(this.uid).pipe(externalInData);
+        }
+
+
+    };
+
 
     MapItem.prototype.createData = function(def){
 
