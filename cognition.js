@@ -1033,7 +1033,8 @@
         }
 
         if(def.run && !def.toggle && !def.pipe) {
-            var callback = context[def.run];
+            //var callback = context[def.run];
+            var callback = this._resolveValueFromType(def.run, PROP);
             sensor.run(callback);
         }
 
